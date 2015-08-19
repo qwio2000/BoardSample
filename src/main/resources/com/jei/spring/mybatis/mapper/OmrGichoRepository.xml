@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jei.spring.repository.OmrGichoRepository">
+
+	
+	<insert id="omrGichoSave" parameterType="com.jei.spring.domain.OmrGicho" useGeneratedKeys="true" keyProperty="num">
+		INSERT INTO devglobaldig.OmrGicho (omrDate,hkey,kwamok,rw,nOmr,mFirstName,mLastName,skey,sName
+		,omrGrd,omrHak,omrKind,omrDay,omrDay2,omrCbulsu,omrBirth,workDay
+		,workID,branch,team,boSetSu,nDung,pan,inSta,omrPath) 
+		VALUES(
+			#{omrDate},#{hkey},#{kwamok},#{rw},#{nOmr},#{mFirstName},#{mLastName},#{skey},#{sName}
+			,#{omrGrd},#{omrHak},#{omrKind},#{omrDay},#{omrDay2},#{omrCbulsu},#{omrBirth},#{workDay}
+			,#{workID},#{branch},#{team},#{boSetSu},#{nDung},#{pan},#{inSta},#{omrPath}
+		)
+	</insert>
+	
+	<select id="spOmrGichoSave" statementType="CALLABLE" parameterType="com.jei.spring.domain.OmrGicho">
+		{ CALL devglobaldig.omrGichoSave(
+			#{omrDate},#{hkey},#{kwamok},#{rw},#{nOmr},#{mFirstName},#{mLastName},#{skey},#{sName}
+			,#{omrGrd},#{omrHak},#{omrKind},#{omrDay},#{omrDay2},#{omrCbulsu},#{omrBirth}
+			,#{workID},#{branch},#{team},#{boSetSu},#{nDung},#{pan},#{inSta},#{omrPath}
+		) }
+	</select>
+	
+	<select id="countOmrGichoList" resultType="int">
+		SELECT count(0) as totalCnt FROM devglobaldig.OmrGicho
+	</select>
+	
+	<select id="selectOmrGichoList" resultType="com.jei.spring.domain.OmrGicho">
+		SELECT * FROM devglobaldig.OmrGicho ORDER BY workDay DESC LIMIT #{offSet},#{rowCount}
+	</select>
+	
+	<select id="spOmrGichoList" statementType="CALLABLE" resultType="com.jei.spring.domain.SpOmrGicho">
+		{ CALL devglobaldig.omrGichoList(#{currentPage},#{rowCount})}
+	</select>
+	
+	
+</mapper>

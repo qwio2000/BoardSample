@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jei.spring.repository.BoardRepository">
+	<select id="selectBoardListCount" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*) AS totalCnt 
+		FROM global.Board AS a JOIN global.BoardKind AS b ON a.boardKindCode = b.boardKindCode 
+		WHERE b.boardKindName = #{boardKindName} AND boardDeleteYN = 'N'
+		<if test="searchWord != null and searchWord != ''">
+                AND ${searchType} LIKE '%${searchWord}%'
+        </if>
+	</select>
+	<select id="selectBoardList" parameterType="hashMap" resultType="com.jei.spring.domain.board.BoardArticle">
+		SELECT boardIdx, memberId, boardKindCode, boardSubject, boardDeleteYN, boardReadCount, DATE_FORMAT(boardRegDate,'%Y-%m-%d') AS boardRegDate,
+		CASE WHEN CURRENT_DATE = DATE_FORMAT(boardRegDate,'%Y-%m-%d') THEN 'new' ELSE '' END newData,
+		(SELECT COUNT(*) FROM global.Comment WHERE Comment.boardIdx = Board.boardIdx AND Comment.commentDeleteYN = 'N') AS commentTotalCount
+		FROM global.Board 
+		WHERE boardKindCode = (SELECT boardKindCode FROM global.BoardKind WHERE boardKindName = #{boardKindName}) 
+			  AND boardDeleteYN = 'N' 
+		<if test="searchWord != null and searchWord != ''">
+                AND ${searchType} LIKE '%${searchWord}%'
+        </if>
+		ORDER BY boardRegDate DESC, boardIdx DESC 
+		LIMIT #{offset},#{rowCount}
+	</select>
+	<select id="selectBoardArticle" parameterType="int" resultType="com.jei.spring.domain.board.BoardArticle">
+		SELECT boardIdx, memberId, boardKindCode, boardSubject, boardDeleteYN, boardReadCount, DATE_FORMAT(boardRegDate,'%Y-%m-%d') AS boardRegDate, boardContent 
+		FROM global.Board
+		WHERE boardIdx = #{boardIdx}
+	</select>
+	<select id="selectAttachFileList" parameterType="int" resultType="com.jei.spring.domain.board.AttachFile">
+		SELECT *
+		FROM global.AttachFile
+		WHERE boardIdx = #{boardIdx}
+	</select>
+	<select id="selectCommentList" parameterType="int" resultType="com.jei.spring.domain.board.Comment">
+		SELECT commentIdx, boardIdx, memberId, commentContent, commentDeleteYN, DATE_FORMAT(commentRegDate,'%Y-%m-%d') AS commentRegDate
+		FROM global.Comment
+		WHERE boardIdx = #{boardIdx} AND commentDeleteYN = 'N'
+		ORDER BY commentIdx ASC
+	</select>
+	<update id="updateReadCount" parameterType="int">
+		UPDATE global.Board SET boardReadCount = boardReadCount +1 WHERE boardIdx = #{boardIdx} 
+	</update>
+	<insert id="insertBoardArticle" parameterType="hashMap" useGeneratedKeys="true" keyProperty="boardIdx">
+		INSERT INTO global.Board (memberId, boardKindCode, boardSubject, boardContent, boardDeleteYN, boardReadCount, boardRegDate) 
+		VALUES(#{boardArticle.memberId},(SELECT boardKindCode FROM global.BoardKind WHERE boardKindName = #{boardKindName}),#{boardArticle.boardSubject},#{boardArticle.boardContent},'N',0,NOW())
+	</insert>
+	<insert id="insertAttachFile" parameterType="hashMap" useGeneratedKeys="true" keyProperty="fileIdx">
+	INSERT INTO global.AttachFile (boardIdx,fileOriginalName,fileName,fileSize,fileUrl,fileExt,fileDownloadCount)
+	VALUES
+	(
+	<choose>
+		<when test="boardIdx != null and boardIdx != 0">#{boardIdx}</when>
+		<otherwise>
+		(SELECT MAX(boardIdx) as boardIdx
+		FROM global.Board
+		WHERE boardKindCode = (SELECT boardKindCode FROM global.BoardKind WHERE boardKindName = #{boardKindName}))
+		</otherwise>
+	</choose>
+	,#{attachFile.fileOriginalName},#{attachFile.fileName},#{attachFile.fileSize},
+	#{attachFile.fileUrl},#{attachFile.fileExt},0)
+	</insert>
+	<update id="updateDownloadCount" parameterType="hashMap">
+		UPDATE global.AttachFile SET fileDownloadCount = fileDownloadCount +1 WHERE fileName = #{fileName} 
+	</update>
+	<insert id="insertDownloadInfo" parameterType="hashMap" useGeneratedKeys="true" keyProperty="fileDownIdx">
+		INSERT INTO global.FileDownload (boardIdx, fileIdx, memberId, fileDownDate) 
+		VALUES(#{boardIdx},(SELECT fileIdx FROM global.AttachFile WHERE fileName = #{fileName}),#{memberId},NOW())
+	</insert>
+	<insert id="insertComment" parameterType="hashMap" useGeneratedKeys="true" keyProperty="commentIdx">
+		INSERT INTO global.Comment (boardIdx, memberId, commentContent, commentDeleteYN, commentRegDate) 
+		VALUES(#{boardIdx},#{memberId},#{commentContent},'N',NOW())
+	</insert>
+	<update id="deleteComment" parameterType="int">
+		UPDATE global.Comment SET commentDeleteYN = 'Y' WHERE commentIdx = #{commentIdx} 
+	</update>
+	<update id="deleteBoardArticle" parameterType="int">
+		UPDATE global.Board SET boardDeleteYN = 'Y' WHERE boardIdx = #{boardIdx} 
+	</update>
+	<delete id="deleteAttachFile" parameterType="int">
+		DELETE FROM global.AttachFile WHERE boardIdx = #{boardIdx}
+	</delete>
+	<delete id="deleteAttachFileByFileIdx" parameterType="int">
+		DELETE FROM global.AttachFile WHERE fileIdx = #{fileIdx}
+	</delete>
+	<update id="deleteComments" parameterType="int">
+		UPDATE global.Comment SET commentDeleteYN = 'Y' WHERE boardIdx = #{boardIdx} 
+	</update>
+	<update id="updateBoardArticle" parameterType="hashMap">
+		UPDATE global.Board SET boardSubject = #{boardArticle.boardSubject}, boardContent = #{boardArticle.boardContent} WHERE boardIdx = #{boardIdx} 
+	</update>
+	<select id="selectAttachFile" parameterType="int" resultType="com.jei.spring.domain.board.AttachFile">
+		SELECT *
+		FROM global.AttachFile
+		WHERE fileIdx = #{fileIdx}
+	</select>
+</mapper>
